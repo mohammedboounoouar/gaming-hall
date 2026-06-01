@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قاعة الألعاب الإلكترونية</title>
+
+<!-- PWA -->
+<meta name="theme-color" content="#00e5ff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="نيون">
+<link rel="manifest" id="pwa-manifest">
+
+<!-- Inline SVG icons as data URIs (no external files needed) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%230a0a0f'/><text y='320' x='80' font-size='340'>🎮</text></svg>">
+
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f; --bg2: #111118; --card: #16161f; --card2: #1e1e2a;
+    --border: #2a2a3a; --accent: #00e5ff; --accent2: #7c3aed; --accent3: #f59e0b;
+    --green: #10b981; --red: #ef4444; --text: #e2e8f0; --muted: #64748b;
+    --glow: 0 0 20px rgba(0,229,255,0.3);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Tajawal',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image: linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px), linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);
+    background-size:40px 40px; pointer-events:none; z-index:0;
+  }
+  nav {
+    position:sticky; top:0; z-index:100; background:rgba(10,10,15,0.92);
+    backdrop-filter:blur(20px); border-bottom:1px solid var(--border);
+    padding:0 2rem; display:flex; align-items:center; height:64px; gap:0;
+  }
+  .nav-logo { font-size:1.4rem; font-weight:900; color:var(--accent); letter-spacing:-0.5px; margin-left:2rem; display:flex; align-items:center; gap:0.5rem; white-space:nowrap; }
+  .nav-logo span { color:var(--text); }
+  .nav-tabs { display:flex; gap:0.25rem; flex:1; }
+  .nav-tab {
+    padding:0.5rem 1.25rem; border-radius:8px; border:none; background:transparent;
+    color:var(--muted); font-family:'Tajawal',sans-serif; font-size:0.95rem; font-weight:500;
+    cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:0.4rem;
+  }
+  .nav-tab:hover { color:var(--text); background:var(--card2); }
+  .nav-tab.active { color:var(--accent); background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.2); }
+  .page { display:none; padding:2rem; position:relative; z-index:1; }
+  .page.active { display:block; }
+  .page-header { margin-bottom:2rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+  .page-title { font-size:1.8rem; font-weight:800; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .page-subtitle { color:var(--muted); font-size:0.9rem; margin-top:0.2rem; }
+  #devices-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1.5rem; }
+  .device-card { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; transition:all 0.3s; position:relative; }
+  .device-card:hover { border-color:rgba(0,229,255,0.3); transform:translateY(-2px); box-shadow:var(--glow); }
+  .device-card.running { border-color:var(--green); box-shadow:0 0 20px rgba(16,185,129,0.2); }
+  .device-card.running .device-screen-area { background:linear-gradient(135deg,#0d2a1f,#0a1a2a); }
+  .device-screen-area {
+    background:linear-gradient(135deg,#1a1a2e,#16213e); padding:1.5rem; cursor:pointer;
+    user-select:none; transition:all 0.2s; position:relative; overflow:hidden;
+    min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.75rem;
+  }
+  .device-screen-area::before {
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(circle at 50% 50%,rgba(0,229,255,0.08) 0%,transparent 70%);
+    opacity:0; transition:opacity 0.3s;
+  }
+  .device-screen-area:hover::before, .device-card.running .device-screen-area::before { opacity:1; }
+  .tv-icon {
+    width:90px; height:64px; background:var(--card2); border-radius:8px; border:3px solid var(--border);
+    position:relative; display:flex; align-items:center; justify-content:center; font-size:1.8rem; transition:all 0.3s;
+  }
+  .tv-icon::after { content:''; position:absolute; bottom:-12px; left:50%; transform:translateX(-50%); width:30px; height:8px; background:var(--border); border-radius:0 0 4px 4px; }
+  .device-card.running .tv-icon { border-color:var(--green); background:#0d2a1f; animation:tvPulse 2s ease-in-out infinite; }
+  @keyframes tvPulse { 0%,100%{box-shadow:0 0 10px rgba(16,185,129,0.3);} 50%{box-shadow:0 0 25px rgba(16,185,129,0.6);} }
+  .device-name { font-size:1rem; font-weight:700; color:var(--text); margin-top:0.5rem; }
+  .device-status-badge { font-size:0.75rem; padding:0.2rem 0.7rem; border-radius:20px; font-weight:600; }
+  .badge-idle { background:rgba(100,116,139,0.2); color:var(--muted); border:1px solid var(--border); }
+  .badge-running { background:rgba(16,185,129,0.15); color:var(--green); border:1px solid rgba(16,185,129,0.3); }
+  .counter-display { font-size:2rem; font-weight:900; color:var(--accent); letter-spacing:-1px; line-height:1; }
+  .counter-label { font-size:0.75rem; color:var(--muted); }
+  .timer-display { font-size:1.4rem; font-weight:800; color:var(--green); letter-spacing:2px; font-variant-numeric:tabular-nums; }
+  .card-controls { padding:1rem 1.25rem; display:flex; flex-direction:column; gap:0.75rem; border-top:1px solid var(--border); }
+  .control-row { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+  .control-label { font-size:0.8rem; color:var(--muted); min-width:80px; flex-shrink:0; }
+  .mode-toggle { display:flex; background:var(--bg2); border-radius:8px; padding:3px; gap:2px; border:1px solid var(--border); }
+  .mode-btn { padding:0.3rem 0.75rem; border-radius:6px; border:none; background:transparent; color:var(--muted); font-family:'Tajawal',sans-serif; font-size:0.8rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .mode-btn.active { background:var(--card2); color:var(--accent); border:1px solid rgba(0,229,255,0.3); }
+  .duration-select, .price-input {
+    background:var(--bg2); border:1px solid var(--border); border-radius:8px; color:var(--text);
+    font-family:'Tajawal',sans-serif; font-size:0.85rem; padding:0.35rem 0.6rem; flex:1; min-width:80px; transition:border-color 0.2s;
+  }
+  .duration-select:focus, .price-input:focus { outline:none; border-color:var(--accent); }
+  .price-unit { font-size:0.8rem; color:var(--accent3); font-weight:600; white-space:nowrap; }
+  .action-row { display:flex; gap:0.5rem; padding:0.75rem 1.25rem; border-top:1px solid var(--border); }
+  .btn { flex:1; padding:0.5rem; border-radius:8px; border:none; font-family:'Tajawal',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+  .btn-stop { background:rgba(239,68,68,0.15); color:var(--red); border:1px solid rgba(239,68,68,0.3); }
+  .btn-stop:hover { background:rgba(239,68,68,0.25); }
+  .btn-reset { background:rgba(100,116,139,0.15); color:var(--muted); border:1px solid var(--border); }
+  .btn-reset:hover { background:rgba(100,116,139,0.25); color:var(--text); }
+  .card-total { padding:0.6rem 1.25rem; background:var(--bg2); display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; }
+  .total-label { color:var(--muted); }
+  .total-value { font-weight:800; color:var(--accent3); font-size:1rem; }
+
+  /* ── MANAGE ── */
+  .manage-layout { display:grid; grid-template-columns:1fr 360px; gap:2rem; align-items:start; }
+  @media(max-width:900px){.manage-layout{grid-template-columns:1fr;}}
+  .devices-table-wrap { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  th { background:var(--card2); color:var(--muted); font-size:0.8rem; font-weight:600; padding:0.75rem 1rem; text-align:right; border-bottom:1px solid var(--border); }
+  td { padding:0.85rem 1rem; border-bottom:1px solid rgba(42,42,58,0.5); font-size:0.9rem; vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(255,255,255,0.02); }
+  .device-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-left:0.4rem; }
+  .dot-idle { background:var(--muted); }
+  .dot-running { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .tbl-btns { display:flex; gap:0.4rem; }
+  .icon-btn { width:32px; height:32px; border-radius:7px; border:1px solid var(--border); background:var(--bg2); color:var(--muted); cursor:pointer; font-size:0.85rem; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
+  .icon-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .icon-btn.del:hover { border-color:var(--red); color:var(--red); }
+  .form-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:1.5rem; }
+  .form-card h3 { font-size:1.05rem; font-weight:700; color:var(--text); margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem; }
+  .form-group { margin-bottom:1rem; }
+  .form-group label { display:block; font-size:0.82rem; color:var(--muted); margin-bottom:0.4rem; font-weight:600; }
+  .form-input, .form-select { width:100%; background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'Tajawal',sans-serif; font-size:0.9rem; padding:0.6rem 0.9rem; transition:border-color 0.2s; }
+  .form-input:focus, .form-select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,229,255,0.08); }
+  .btn-primary { width:100%; padding:0.7rem; border-radius:10px; border:none; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-family:'Tajawal',sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; margin-top:0.5rem; }
+  .btn-primary:hover { opacity:0.9; transform:translateY(-1px); }
+  .btn-secondary { width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border); background:var(--bg2); color:var(--muted); font-family:'Tajawal',sans-serif; font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s; margin-top:0.4rem; }
+  .btn-secondary:hover { color:var(--text); border-color:var(--muted); }
+
+  /* ── INCOME ── */
+  .income-toolbar { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; }
+  .income-date-picker { background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'Tajawal',sans-serif; font-size:0.88rem; padding:0.45rem 0.8rem; cursor:pointer; transition:border-color 0.2s; }
+  .income-date-picker:focus { outline:none; border-color:var(--accent); }
+  .income-date-picker::-webkit-calendar-picker-indicator { filter:invert(0.7); cursor:pointer; }
+  .btn-icon-action { display:flex; align-items:center; gap:0.4rem; padding:0.45rem 1rem; border-radius:10px; border:1px solid var(--border); background:var(--bg2); color:var(--muted); font-family:'Tajawal',sans-serif; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+  .btn-icon-action:hover { color:var(--text); border-color:var(--accent); }
+  .btn-icon-action.green:hover { border-color:var(--green); color:var(--green); }
+  .btn-icon-action.amber:hover { border-color:var(--accent3); color:var(--accent3); }
+  .btn-icon-action.danger:hover { border-color:var(--red); color:var(--red); }
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:2rem; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:1.25rem; position:relative; overflow:hidden; }
+  .stat-card::before { content:''; position:absolute; top:0; right:0; width:60px; height:60px; border-radius:0 14px 0 100%; opacity:0.15; }
+  .stat-card.cyan::before { background:var(--accent); }
+  .stat-card.purple::before { background:var(--accent2); }
+  .stat-card.amber::before { background:var(--accent3); }
+  .stat-card.green::before { background:var(--green); }
+  .stat-icon { font-size:1.5rem; margin-bottom:0.6rem; }
+  .stat-value { font-size:1.8rem; font-weight:900; color:var(--text); line-height:1; }
+  .stat-unit { font-size:0.75rem; color:var(--accent3); font-weight:700; }
+  .stat-label { font-size:0.8rem; color:var(--muted); margin-top:0.3rem; }
+  .income-table-wrap { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  .income-table-header { padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--card2); flex-wrap:wrap; gap:0.5rem; }
+  .income-table-header h3 { font-size:1rem; font-weight:700; }
+  .date-badge { background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.2); color:var(--accent); padding:0.25rem 0.75rem; border-radius:20px; font-size:0.8rem; font-weight:600; }
+  .entry-type-game { background:rgba(124,58,237,0.15); color:#a78bfa; padding:0.15rem 0.5rem; border-radius:5px; font-size:0.78rem; font-weight:600; }
+  .entry-type-time { background:rgba(0,229,255,0.12); color:var(--accent); padding:0.15rem 0.5rem; border-radius:5px; font-size:0.78rem; font-weight:600; }
+  .btn-clear { padding:0.4rem 1rem; border-radius:8px; border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.1); color:var(--red); font-family:'Tajawal',sans-serif; font-size:0.82rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .btn-clear:hover { background:rgba(239,68,68,0.2); }
+  .empty-state { text-align:center; padding:3rem; color:var(--muted); }
+  .empty-state .empty-icon { font-size:3rem; margin-bottom:0.75rem; }
+  .empty-state p { font-size:0.9rem; }
+
+  /* ── TOAST ── */
+  #toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%) translateY(80px); background:var(--card2); border:1px solid var(--border); color:var(--text); padding:0.6rem 1.25rem; border-radius:30px; font-size:0.88rem; font-weight:600; transition:transform 0.3s; z-index:999; white-space:nowrap; }
+  #toast.show { transform:translateX(-50%) translateY(0); }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+  @media(max-width:600px){ nav{padding:0 1rem;} .page{padding:1rem;} .nav-logo{font-size:1rem;margin-left:0.75rem;} .nav-tab{padding:0.4rem 0.6rem;font-size:0.8rem;} }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">🎮 <span>قاعة</span> نيون</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('home')" id="tab-home">🖥️ الأجهزة</button>
+    <button class="nav-tab" onclick="showPage('manage')" id="tab-manage">⚙️ الإدارة</button>
+    <button class="nav-tab" onclick="showPage('income')" id="tab-income">💰 المداخيل</button>
+  </div>
+</nav>
+
+<div id="toast"></div>
+
+<!-- PAGE HOME -->
+<div id="page-home" class="page active">
+  <div class="page-header">
+    <div>
+      <div class="page-title">لوحة الأجهزة</div>
+      <div class="page-subtitle">انقر على شاشة الجهاز لإضافة لعبة أو بدء العداد الزمني</div>
+    </div>
+  </div>
+  <div id="devices-grid"></div>
+</div>
+
+<!-- PAGE MANAGE -->
+<div id="page-manage" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">إدارة الأجهزة</div>
+      <div class="page-subtitle">أضف أو عدّل أو احذف الأجهزة</div>
+    </div>
+  </div>
+  <div class="manage-layout">
+    <div class="devices-table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>الجهاز</th><th>الحالة</th><th>التسعير</th><th>السعر</th><th>إجراءات</th></tr>
+        </thead>
+        <tbody id="manage-table-body"></tbody>
+      </table>
+    </div>
+    <div>
+      <div class="form-card">
+        <h3 id="form-title">➕ إضافة جهاز جديد</h3>
+        <div class="form-group">
+          <label>اسم الجهاز</label>
+          <input type="text" class="form-input" id="f-name" placeholder="مثال: جهاز 4">
+        </div>
+        <div class="form-group">
+          <label>نوع التسعير الافتراضي</label>
+          <select class="form-select" id="f-mode" onchange="toggleFormDuration()">
+            <option value="game">🎮 حسب اللعبة</option>
+            <option value="time">⏱️ حسب المدة</option>
+          </select>
+        </div>
+        <div class="form-group" id="f-duration-group" style="display:none">
+          <label>مدة الوحدة (دقيقة)</label>
+          <select class="form-select" id="f-duration">
+            <option value="15">15 دقيقة</option>
+            <option value="30">30 دقيقة</option>
+            <option value="45">45 دقيقة</option>
+            <option value="60">60 دقيقة</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>سعر الوحدة (دج)</label>
+          <input type="number" class="form-input" id="f-price" placeholder="100" min="0">
+        </div>
+        <input type="hidden" id="f-edit-id" value="">
+        <button class="btn-primary" onclick="saveDevice()">💾 حفظ</button>
+        <button class="btn-secondary" onclick="cancelEdit()" id="cancel-btn" style="display:none">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE INCOME -->
+<div id="page-income" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">المداخيل</div>
+      <div class="page-subtitle" id="income-date-label"></div>
+    </div>
+    <div class="income-toolbar">
+      <input type="date" class="income-date-picker" id="income-date-input" onchange="renderIncome()">
+      <button class="btn-icon-action green" onclick="exportJSON()">📤 تصدير JSON</button>
+      <button class="btn-icon-action amber" onclick="document.getElementById('import-file').click()">📥 استيراد JSON</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+      <button class="btn-clear" onclick="clearSelectedDayIncome()">🗑️ مسح اليوم</button>
+    </div>
+  </div>
+  <div class="stats-grid" id="stats-grid"></div>
+  <div class="income-table-wrap">
+    <div class="income-table-header">
+      <h3>📋 سجل العمليات</h3>
+      <div class="date-badge" id="income-today-badge"></div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>الوقت</th><th>الجهاز</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th></tr>
+      </thead>
+      <tbody id="income-table-body"></tbody>
+    </table>
+    <div id="income-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">📭</div>
+      <p>لا توجد عمليات في هذا اليوم</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  IndexedDB
+// ══════════════════════════════════════════════
+const DB_NAME = 'NeonGamingHall';
+const DB_VER  = 1;
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('devices')) {
+        d.createObjectStore('devices', { keyPath: 'id' });
+      }
+      if (!d.objectStoreNames.contains('income')) {
+        const inc = d.createObjectStore('income', { keyPath: 'id' });
+        inc.createIndex('date', 'dateISO', { unique: false });
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbGetAll(store) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbPut(store, obj) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).put(obj);
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbDelete(store, key) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbClear(store) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).clear();
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbGetByIndex(store, indexName, value) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(store, 'readonly');
+    const idx = tx.objectStore(store).index(indexName);
+    const req = idx.getAll(value);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let devices  = [];
+let sessions = {}; // id -> { count, running, startTime, intervalId, elapsed }
+
+const DEFAULT_DEVICES = [
+  { id: 1, name: 'جهاز 1', mode: 'game', duration: 15, price: 50  },
+  { id: 2, name: 'جهاز 2', mode: 'game', duration: 15, price: 50  },
+  { id: 3, name: 'جهاز 3', mode: 'time', duration: 15, price: 100 },
+];
+
+async function loadDevices() {
+  devices = await dbGetAll('devices');
+  if (devices.length === 0) {
+    for (const d of DEFAULT_DEVICES) await dbPut('devices', d);
+    devices = [...DEFAULT_DEVICES];
+  }
+}
+
+async function saveDevices() {
+  for (const d of devices) await dbPut('devices', d);
+}
+
+async function addIncomeEntry(entry) {
+  await dbPut('income', entry);
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function isoToDisplay(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function nextDeviceId() {
+  return devices.length > 0 ? Math.max(...devices.map(d => d.id)) + 1 : 1;
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'home')   renderHome();
+  if (name === 'manage') renderManage();
+  if (name === 'income') renderIncome();
+}
+
+// ══════════════════════════════════════════════
+//  HOME PAGE
+// ══════════════════════════════════════════════
+function renderHome() {
+  const grid = document.getElementById('devices-grid');
+  grid.innerHTML = '';
+  devices.forEach(d => {
+    if (!sessions[d.id]) sessions[d.id] = { count:0, running:false, startTime:null, intervalId:null, elapsed:0 };
+    grid.appendChild(buildDeviceCard(d));
+  });
+}
+
+function buildDeviceCard(d) {
+  const s = sessions[d.id];
+  const card = document.createElement('div');
+  card.className = 'device-card' + (s.running ? ' running' : '');
+  card.id = 'card-' + d.id;
+  const unitLabel = d.mode === 'game' ? 'لعبة' : `${d.duration} دق`;
+  card.innerHTML = `
+    <div class="device-screen-area" onclick="handleScreenClick(${d.id})" id="screen-${d.id}">
+      <div class="tv-icon" id="tv-${d.id}">📺</div>
+      <div class="device-name">${d.name}</div>
+      <span class="device-status-badge ${s.running?'badge-running':'badge-idle'}" id="badge-${d.id}">
+        ${s.running ? '● يعمل' : '● خامل'}
+      </span>
+      ${d.mode === 'game'
+        ? `<div class="counter-display" id="counter-${d.id}">${s.count}</div>
+           <div class="counter-label">عدد الألعاب</div>`
+        : `<div class="timer-display" id="timer-${d.id}">${formatTime(s.elapsed)}</div>
+           <div class="counter-label">الوقت المنقضي</div>`
+      }
+    </div>
+    <div class="card-controls">
+      <div class="control-row">
+        <span class="control-label">التسعير:</span>
+        <div class="mode-toggle">
+          <button class="mode-btn ${d.mode==='game'?'active':''}" onclick="setMode(${d.id},'game')">🎮 لعبة</button>
+          <button class="mode-btn ${d.mode==='time'?'active':''}" onclick="setMode(${d.id},'time')">⏱️ وقت</button>
+        </div>
+      </div>
+      <div class="control-row" id="dur-row-${d.id}" style="${d.mode==='time'?'':'display:none'}">
+        <span class="control-label">المدة:</span>
+        <select class="duration-select" id="dur-sel-${d.id}" onchange="setDuration(${d.id},this.value)">
+          <option value="15" ${d.duration==15?'selected':''}>15 دقيقة</option>
+          <option value="30" ${d.duration==30?'selected':''}>30 دقيقة</option>
+          <option value="45" ${d.duration==45?'selected':''}>45 دقيقة</option>
+          <option value="60" ${d.duration==60?'selected':''}>60 دقيقة</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <span class="control-label">السعر:</span>
+        <input type="number" class="price-input" id="price-inp-${d.id}" value="${d.price}" min="0"
+          onchange="setPrice(${d.id},this.value)" style="max-width:90px">
+        <span class="price-unit">دج / ${unitLabel}</span>
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-stop" onclick="stopDevice(${d.id})"
+        ${!s.running?'disabled style="opacity:0.4;cursor:not-allowed"':''} id="stop-btn-${d.id}">
+        ⏹ إيقاف وتسجيل
+      </button>
+      <button class="btn btn-reset" onclick="resetDevice(${d.id})">↺ مسح</button>
+    </div>
+    <div class="card-total">
+      <span class="total-label">المبلغ المستحق</span>
+      <span class="total-value" id="total-${d.id}">${calcTotal(d,s)} دج</span>
+    </div>
+  `;
+  return card;
+}
+
+function handleScreenClick(id) {
+  const d = devices.find(x => x.id === id);
+  const s = sessions[id];
+  if (!d) return;
+  if (d.mode === 'game') {
+    s.count++;
+    s.running = true; // mark as active so stop button enables
+    updateCardDisplay(id);
+    showToast(`+1 لعبة — ${d.name}`);
+  } else {
+    if (!s.running) {
+      startTimer(id);
+      showToast(`▶️ بدأ العداد — ${d.name}`);
+    }
+  }
+}
+
+function startTimer(id) {
+  const s = sessions[id];
+  if (s.running) return;
+  s.running = true;
+  s.startTime = Date.now() - (s.elapsed * 1000);
+  s.intervalId = setInterval(() => {
+    s.elapsed = Math.floor((Date.now() - s.startTime) / 1000);
+    updateCardDisplay(id);
+  }, 1000);
+  updateCardDisplay(id);
+}
+
+async function stopDevice(id) {
+  const d = devices.find(x => x.id === id);
+  const s = sessions[id];
+  if (!d || !s.running) return;
+  clearInterval(s.intervalId);
+  s.running = false;
+  const amount = calcTotal(d, s);
+  const now = new Date();
+  const entry = {
+    id:         now.getTime(),
+    deviceId:   d.id,
+    deviceName: d.name,
+    mode:       d.mode,
+    count:      s.count,
+    elapsed:    s.elapsed,
+    price:      d.price,
+    duration:   d.duration,
+    amount:     amount,
+    time:       now.toLocaleTimeString('ar-DZ', { hour:'2-digit', minute:'2-digit' }),
+    dateISO:    todayISO(),
+    dateDisplay: isoToDisplay(todayISO())
+  };
+  await addIncomeEntry(entry);
+  showToast(`✅ تم تسجيل ${amount} دج — ${d.name}`);
+  updateCardDisplay(id);
+}
+
+function resetDevice(id) {
+  const s = sessions[id];
+  if (s.intervalId) clearInterval(s.intervalId);
+  sessions[id] = { count:0, running:false, startTime:null, intervalId:null, elapsed:0 };
+  updateCardDisplay(id);
+}
+
+async function setMode(id, mode) {
+  const d = devices.find(x => x.id === id);
+  if (!d) return;
+  if (sessions[id]?.running) { showToast('⚠️ أوقف الجهاز أولاً'); return; }
+  d.mode = mode;
+  await dbPut('devices', d);
+  resetDevice(id);
+  renderHome();
+}
+
+async function setDuration(id, val) {
+  const d = devices.find(x => x.id === id);
+  if (d) { d.duration = parseInt(val); await dbPut('devices', d); }
+}
+
+async function setPrice(id, val) {
+  const d = devices.find(x => x.id === id);
+  if (d) { d.price = parseFloat(val) || 0; await dbPut('devices', d); updateCardDisplay(id); }
+}
+
+function calcTotal(d, s) {
+  if (d.mode === 'game') return s.count * d.price;
+  const units = Math.ceil(s.elapsed / (d.duration * 60));
+  return units * d.price;
+}
+
+function formatTime(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return (h > 0 ? String(h).padStart(2,'0') + ':' : '') +
+    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function updateCardDisplay(id) {
+  const d = devices.find(x => x.id === id);
+  const s = sessions[id];
+  if (!d || !s) return;
+  const card = document.getElementById('card-' + id);
+  if (!card) return;
+  card.className = 'device-card' + (s.running ? ' running' : '');
+  const badge = document.getElementById('badge-' + id);
+  if (badge) {
+    badge.className = 'device-status-badge ' + (s.running ? 'badge-running' : 'badge-idle');
+    badge.textContent = s.running ? '● يعمل' : '● خامل';
+  }
+  if (d.mode === 'game') {
+    const el = document.getElementById('counter-' + id);
+    if (el) el.textContent = s.count;
+  } else {
+    const el = document.getElementById('timer-' + id);
+    if (el) el.textContent = formatTime(s.elapsed);
+  }
+  const totalEl = document.getElementById('total-' + id);
+  if (totalEl) totalEl.textContent = calcTotal(d, s) + ' دج';
+  const stopBtn = document.getElementById('stop-btn-' + id);
+  if (stopBtn) {
+    stopBtn.disabled = !s.running;
+    stopBtn.style.opacity = s.running ? '1' : '0.4';
+    stopBtn.style.cursor  = s.running ? 'pointer' : 'not-allowed';
+  }
+}
+
+// ══════════════════════════════════════════════
+//  MANAGE PAGE
+// ══════════════════════════════════════════════
+function renderManage() {
+  const tbody = document.getElementById('manage-table-body');
+  tbody.innerHTML = '';
+  devices.forEach((d, i) => {
+    const running = sessions[d.id]?.running || false;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${d.name}</td>
+      <td><span class="device-dot ${running?'dot-running':'dot-idle'}"></span>${running?'يعمل':'خامل'}</td>
+      <td>${d.mode==='game'?'🎮 لعبة':'⏱️ وقت'}</td>
+      <td>${d.price} دج</td>
+      <td><div class="tbl-btns">
+        <button class="icon-btn" onclick="editDevice(${d.id})">✏️</button>
+        <button class="icon-btn del" onclick="deleteDevice(${d.id})">🗑️</button>
+      </div></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function editDevice(id) {
+  const d = devices.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('f-edit-id').value = id;
+  document.getElementById('f-name').value    = d.name;
+  document.getElementById('f-mode').value    = d.mode;
+  document.getElementById('f-duration').value= d.duration;
+  document.getElementById('f-price').value   = d.price;
+  document.getElementById('form-title').textContent = '✏️ تعديل الجهاز';
+  document.getElementById('cancel-btn').style.display = 'block';
+  toggleFormDuration();
+}
+
+async function deleteDevice(id) {
+  if (!confirm('هل أنت متأكد من حذف هذا الجهاز؟')) return;
+  const s = sessions[id];
+  if (s?.intervalId) clearInterval(s.intervalId);
+  delete sessions[id];
+  devices = devices.filter(d => d.id !== id);
+  await dbDelete('devices', id);
+  renderManage();
+  showToast('🗑️ تم حذف الجهاز');
+}
+
+async function saveDevice() {
+  const name     = document.getElementById('f-name').value.trim();
+  const mode     = document.getElementById('f-mode').value;
+  const duration = parseInt(document.getElementById('f-duration').value);
+  const price    = parseFloat(document.getElementById('f-price').value) || 0;
+  const editId   = document.getElementById('f-edit-id').value;
+  if (!name) { showToast('⚠️ أدخل اسم الجهاز'); return; }
+  if (editId) {
+    const d = devices.find(x => x.id === parseInt(editId));
+    if (d) { d.name=name; d.mode=mode; d.duration=duration; d.price=price; await dbPut('devices', d); }
+  } else {
+    const d = { id:nextDeviceId(), name, mode, duration, price };
+    devices.push(d);
+    await dbPut('devices', d);
+  }
+  cancelEdit();
+  renderManage();
+  showToast('✅ تم الحفظ بنجاح');
+}
+
+function cancelEdit() {
+  document.getElementById('f-edit-id').value = '';
+  document.getElementById('f-name').value    = '';
+  document.getElementById('f-mode').value    = 'game';
+  document.getElementById('f-price').value   = '';
+  document.getElementById('f-duration').value= '15';
+  document.getElementById('form-title').textContent = '➕ إضافة جهاز جديد';
+  document.getElementById('cancel-btn').style.display = 'none';
+  document.getElementById('f-duration-group').style.display = 'none';
+}
+
+function toggleFormDuration() {
+  const mode = document.getElementById('f-mode').value;
+  document.getElementById('f-duration-group').style.display = mode === 'time' ? 'block' : 'none';
+}
+
+// ══════════════════════════════════════════════
+//  INCOME PAGE
+// ══════════════════════════════════════════════
+async function renderIncome() {
+  const picker = document.getElementById('income-date-input');
+  if (!picker.value) picker.value = todayISO();
+  const selectedISO = picker.value;
+  const displayDate = isoToDisplay(selectedISO);
+
+  document.getElementById('income-date-label').textContent = displayDate;
+  document.getElementById('income-today-badge').textContent = displayDate;
+
+  const entries = await dbGetByIndex('income', 'date', selectedISO);
+
+  // Stats
+  const totalAmount  = entries.reduce((s, e) => s + e.amount, 0);
+  const totalGames   = entries.filter(e => e.mode === 'game').reduce((s, e) => s + e.count, 0);
+  const totalMinutes = entries.filter(e => e.mode === 'time').reduce((s, e) => s + Math.floor(e.elapsed / 60), 0);
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card cyan">
+      <div class="stat-icon">💰</div>
+      <div class="stat-value">${totalAmount} <span class="stat-unit">دج</span></div>
+      <div class="stat-label">إجمالي مداخيل اليوم</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-icon">📋</div>
+      <div class="stat-value">${entries.length}</div>
+      <div class="stat-label">عدد العمليات</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-icon">🎮</div>
+      <div class="stat-value">${totalGames}</div>
+      <div class="stat-label">إجمالي الألعاب</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-icon">⏱️</div>
+      <div class="stat-value">${totalMinutes} <span class="stat-unit">دق</span></div>
+      <div class="stat-label">إجمالي وقت اللعب</div>
+    </div>
+  `;
+
+  // Table
+  const tbody = document.getElementById('income-table-body');
+  const empty = document.getElementById('income-empty');
+  tbody.innerHTML = '';
+
+  if (entries.length === 0) {
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    [...entries].sort((a,b) => b.id - a.id).forEach(e => {
+      const details = e.mode === 'game'
+        ? `${e.count} لعبة × ${e.price} دج`
+        : `${formatTime(e.elapsed)} (${Math.ceil(e.elapsed / (e.duration * 60))} وحدة × ${e.price} دج)`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${e.time}</td>
+        <td>${e.deviceName}</td>
+        <td><span class="${e.mode==='game'?'entry-type-game':'entry-type-time'}">${e.mode==='game'?'🎮 لعبة':'⏱️ وقت'}</span></td>
+        <td style="font-size:0.82rem;color:var(--muted)">${details}</td>
+        <td style="font-weight:800;color:var(--accent3)">${e.amount} دج</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+}
+
+async function clearSelectedDayIncome() {
+  const selectedISO = document.getElementById('income-date-input').value || todayISO();
+  const displayDate = isoToDisplay(selectedISO);
+  if (!confirm(`هل تريد مسح جميع عمليات يوم ${displayDate}؟`)) return;
+  const entries = await dbGetByIndex('income', 'date', selectedISO);
+  for (const e of entries) await dbDelete('income', e.id);
+  renderIncome();
+  showToast('🗑️ تم مسح بيانات اليوم المحدد');
+}
+
+// ══════════════════════════════════════════════
+//  EXPORT / IMPORT
+// ══════════════════════════════════════════════
+async function exportJSON() {
+  const allDevices = await dbGetAll('devices');
+  const allIncome  = await dbGetAll('income');
+  const data = { exportedAt: new Date().toISOString(), devices: allDevices, income: allIncome };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `neon-gaming-hall-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 تم تصدير قاعدة البيانات');
+}
+
+async function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data.devices || !data.income) { showToast('❌ ملف غير صالح'); return; }
+    if (!confirm(`سيتم استيراد ${data.devices.length} جهاز و ${data.income.length} عملية. هل تريد المتابعة؟`)) return;
+    await dbClear('devices');
+    await dbClear('income');
+    for (const d of data.devices) await dbPut('devices', d);
+    for (const e of data.income)  await dbPut('income', e);
+    await loadDevices();
+    renderHome();
+    renderIncome();
+    showToast(`✅ تم الاستيراد: ${data.income.length} عملية`);
+  } catch(err) {
+    showToast('❌ خطأ في قراءة الملف');
+  }
+  event.target.value = '';
+}
+
+// ══════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+openDB().then(async () => {
+  await loadDevices();
+  renderHome();
+}).catch(err => {
+  console.error('IndexedDB error:', err);
+  showToast('❌ خطأ في تهيئة قاعدة البيانات');
+});
+
+// ══════════════════════════════════════════════
+//  PWA — Inline Manifest + Service Worker
+// ══════════════════════════════════════════════
+
+// 1) Inject manifest as Blob URL (no external file needed)
+(function injectManifest() {
+  const manifest = {
+    name: "قاعة نيون للألعاب الإلكترونية",
+    short_name: "نيون",
+    description: "تطبيق إدارة قاعة ألعاب إلكترونية",
+    start_url: "./",
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#0a0a0f",
+    theme_color: "#00e5ff",
+    lang: "ar",
+    dir: "rtl",
+    icons: [
+      {
+        src: "data:image/svg+xml," + encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
+          '<rect width="512" height="512" rx="80" fill="#0a0a0f"/>' +
+          '<rect x="40" y="40" width="432" height="432" rx="60" fill="#16161f"/>' +
+          '<circle cx="256" cy="256" r="180" fill="none" stroke="#00e5ff" stroke-width="8" opacity="0.3"/>' +
+          '<text y="320" x="90" font-size="300" font-family="serif">&#x1F3AE;</text>' +
+          '</svg>'
+        ),
+        sizes: "512x512",
+        type: "image/svg+xml",
+        purpose: "any maskable"
+      }
+    ],
+    categories: ["games","business"]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  document.getElementById('pwa-manifest').setAttribute('href', URL.createObjectURL(blob));
+})();
+
+// 2) Register inline Service Worker via Blob URL
+(function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  const SW = `
+const CACHE = 'neon-v2';
+const FONTS = 'neon-fonts-v1';
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(
+    ks.filter(k => k!==CACHE && k!==FONTS).map(k => caches.delete(k))
+  )));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  const u = e.request.url;
+  if (u.includes('fonts.gstatic.com') || u.includes('fonts.googleapis.com')) {
+    e.respondWith(caches.open(FONTS).then(c =>
+      c.match(e.request).then(r => r || fetch(e.request).then(res => { c.put(e.request,res.clone()); return res; }))
+    )); return;
+  }
+  if (e.request.mode === 'navigate') {
+    e.respondWith(caches.open(CACHE).then(c =>
+      fetch(e.request).then(res => { c.put(e.request,res.clone()); return res; }).catch(() => c.match(e.request))
+    )); return;
+  }
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+});`;
+  const blob = new Blob([SW], { type: 'application/javascript' });
+  navigator.serviceWorker.register(URL.createObjectURL(blob), { scope: './' })
+    .then(() => console.log('✅ SW registered'))
+    .catch(e => console.warn('SW failed:', e));
+})();
+
+// 3) Add to Home Screen banner
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  if (document.getElementById('install-banner')) return;
+  const b = document.createElement('div');
+  b.id = 'install-banner';
+  b.style.cssText = 'position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);' +
+    'background:#1e1e2a;border:1px solid rgba(0,229,255,0.4);color:#e2e8f0;' +
+    'padding:0.7rem 1.25rem;border-radius:30px;font-family:Tajawal,sans-serif;' +
+    'font-size:0.88rem;font-weight:600;display:flex;align-items:center;gap:0.75rem;' +
+    'z-index:998;box-shadow:0 0 20px rgba(0,229,255,0.2);white-space:nowrap;';
+  b.innerHTML =
+    '<span>📲 تثبيت التطبيق على جهازك؟</span>' +
+    '<button onclick="installPWA()" style="background:linear-gradient(135deg,#00e5ff,#7c3aed);' +
+    'border:none;color:#fff;padding:0.3rem 0.9rem;border-radius:20px;' +
+    'font-family:Tajawal,sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">تثبيت</button>' +
+    '<button onclick="document.getElementById(\'install-banner\').remove()" ' +
+    'style="background:none;border:none;color:#64748b;cursor:pointer;font-size:1rem;">✕</button>';
+  document.body.appendChild(b);
+  setTimeout(() => b.parentNode && b.remove(), 15000);
+}
+
+async function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner')?.remove();
+  showToast(outcome === 'accepted' ? '✅ جاري التثبيت...' : 'تم الإلغاء');
+}
+
+window.addEventListener('appinstalled', () => {
+  showToast('🎉 تم تثبيت التطبيق بنجاح!');
+});
+</script>
+</body>
+</html>
